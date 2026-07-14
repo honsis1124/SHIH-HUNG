@@ -4,6 +4,16 @@ import { Project } from '../types';
 import { LayoutGrid, Plus, Trash2, Edit2, Code, Camera, Save, X, ExternalLink, Check } from 'lucide-react';
 import { compressImage } from '../utils/imageCompressor';
 
+const getYouTubeEmbedUrl = (url?: string): string | null => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    return `https://www.youtube.com/embed/${match[2]}`;
+  }
+  return null;
+};
+
 interface ProjectSectionProps {
   projects: Project[];
   isEditMode: boolean;
@@ -23,6 +33,7 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0);
 
   // Form states
   const [title, setTitle] = useState('');
@@ -31,8 +42,11 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
   const [link, setLink] = useState('');
   const [techStack, setTechStack] = useState('');
   const [order, setOrder] = useState(0);
+  const [extraImages, setExtraImages] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const extraFileInputRef = useRef<HTMLInputElement>(null);
 
   const resetForm = () => {
     setTitle('');
@@ -41,6 +55,8 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
     setLink('');
     setTechStack('');
     setOrder(0);
+    setExtraImages([]);
+    setVideoUrl('');
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,6 +78,44 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
     }
   };
 
+  const handleExtraImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const remainingCount = 5 - extraImages.length;
+    if (remainingCount <= 0) {
+      alert('最多只能上傳 5 張額外圖片！');
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, remainingCount) as File[];
+    const newImages: string[] = [];
+
+    for (const file of filesToUpload) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`圖片 ${file.name} 過大！請上傳小於 5MB 的圖片，系統會自動壓縮。`);
+        continue;
+      }
+      try {
+        const base64 = await compressImage(file, 600, 400, 0.75);
+        newImages.push(base64);
+      } catch (err) {
+        console.error(err);
+        alert(`圖片 ${file.name} 讀取或壓縮失敗，請重試！`);
+      }
+    }
+
+    if (newImages.length > 0) {
+      setExtraImages((prev) => [...prev, ...newImages]);
+    }
+
+    e.target.value = '';
+  };
+
+  const removeExtraImage = (index: number) => {
+    setExtraImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !description) {
@@ -79,6 +133,8 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
         techStack,
         order,
         userId: '', // set in parent
+        extraImages,
+        videoUrl,
       });
       setIsAdding(false);
       resetForm();
@@ -98,6 +154,8 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
     setLink(proj.link || '');
     setTechStack(proj.techStack || '');
     setOrder(proj.order || 0);
+    setExtraImages(proj.extraImages || []);
+    setVideoUrl(proj.videoUrl || '');
   };
 
   const handleUpdateSubmit = async (e: React.FormEvent, id: string) => {
@@ -118,6 +176,8 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
         techStack,
         order,
         userId: '', // preserved in parent
+        extraImages,
+        videoUrl,
       });
       setEditingId(null);
       resetForm();
@@ -265,6 +325,71 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
             </div>
           </div>
 
+          {/* Extra Media Fields */}
+          <div className="border-t border-stone-200/60 pt-4 space-y-4">
+            <h4 className="text-[11px] font-bold text-stone-700 uppercase tracking-wider font-mono">
+              額外展示圖片與影音設定 (選填)
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Extra Images Upload & Preview */}
+              <div className="space-y-2">
+                <label className="block text-[11px] font-semibold text-stone-700">額外展示圖片 (最多 5 張，已上傳 {extraImages.length}/5 張)</label>
+                
+                <div className="flex flex-wrap gap-2 items-center">
+                  {extraImages.map((imgBase64, index) => (
+                    <div key={index} className="relative w-16 h-16 rounded-xl overflow-hidden border border-stone-200 group bg-stone-50">
+                      <img src={imgBase64} alt={`Extra ${index + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeExtraImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-0.5 rounded-full shadow-sm cursor-pointer transition-all"
+                        title="移除圖片"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {extraImages.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => extraFileInputRef.current?.click()}
+                      className="w-16 h-16 rounded-xl border-2 border-dashed border-stone-300 hover:border-stone-500 flex flex-col items-center justify-center text-stone-400 hover:text-stone-600 transition-all cursor-pointer bg-white"
+                      title="新增額外展示圖片"
+                    >
+                      <Plus className="w-5 h-5" />
+                      <span className="text-[9px] font-bold mt-0.5">新增</span>
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  ref={extraFileInputRef}
+                  onChange={handleExtraImageChange}
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                />
+              </div>
+
+              {/* Video URL Input */}
+              <div className="space-y-2">
+                <label className="block text-[11px] font-semibold text-stone-700">影音/影片連結 (選填)</label>
+                <input
+                  type="url"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value.slice(0, 500))}
+                  placeholder="支援 YouTube 網址或 MP4 影片路徑"
+                  className="w-full px-3.5 py-2 bg-white border border-stone-200 text-stone-900 placeholder-stone-400 focus:border-stone-800 focus:ring-1 focus:ring-stone-800/20 rounded-xl text-xs outline-none transition-all"
+                />
+                <p className="text-[10px] text-stone-400 leading-tight">
+                  可貼上如：https://www.youtube.com/watch?v=... 或 MP4 直連網址。
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-end space-x-2 pt-2 border-t border-stone-200">
             <button
               type="button"
@@ -318,7 +443,10 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
               return (
                 <div
                   key={proj.id}
-                  onClick={() => setSelectedProject(proj)}
+                  onClick={() => {
+                    setActiveMediaIndex(0);
+                    setSelectedProject(proj);
+                  }}
                   className={`group relative flex flex-col bg-white border border-stone-200 overflow-hidden shadow-sm hover:shadow-[8px_8px_0px_rgba(28,25,23,0.04)] hover:border-stone-300 transition-all duration-300 cursor-pointer ${cornerStyle} ${staggerOffset}`}
                 >
                   {/* Image banner preview */}
@@ -419,90 +547,168 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
       </div>
 
       {/* Project details modal */}
-      {selectedProject && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-950/45 backdrop-blur-md animate-fade-in select-text">
-          <div className="relative w-full max-w-2xl bg-white border border-stone-200 rounded-3xl shadow-2xl p-6 md:p-8 max-h-[85vh] overflow-y-auto animate-scale-in text-left">
-            {/* Close button */}
-            <button
-              onClick={() => setSelectedProject(null)}
-              className="absolute top-4 right-4 text-stone-400 hover:text-stone-900 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer z-10"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      {selectedProject && (() => {
+        const mediaItems: { type: 'video' | 'image'; url: string }[] = [];
+        if (selectedProject.videoUrl) {
+          mediaItems.push({ type: 'video', url: selectedProject.videoUrl });
+        }
+        if (selectedProject.image) {
+          mediaItems.push({ type: 'image', url: selectedProject.image });
+        }
+        if (selectedProject.extraImages && selectedProject.extraImages.length > 0) {
+          selectedProject.extraImages.forEach((img) => {
+            mediaItems.push({ type: 'image', url: img });
+          });
+        }
+        const activeMedia = mediaItems[activeMediaIndex] || mediaItems[0];
 
-            {/* Project Cover Image */}
-            {selectedProject.image ? (
-              <div className="w-full h-64 md:h-80 bg-stone-50 border border-stone-100 rounded-2xl overflow-hidden mb-6 relative">
-                <img src={selectedProject.image} alt={selectedProject.title} className="w-full h-full object-cover" />
-              </div>
-            ) : (
-              <div className="w-full h-40 bg-stone-50 border border-stone-200/60 rounded-2xl flex flex-col items-center justify-center text-stone-300 mb-6">
-                <Code className="w-12 h-12 mb-2 stroke-[1.5]" />
-                <span className="text-[11px] font-mono">No Cover Photo</span>
-              </div>
-            )}
+        return createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-950/45 backdrop-blur-md animate-fade-in select-text">
+            <div className="relative w-full max-w-2xl bg-white border border-stone-200 rounded-3xl shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto animate-scale-in text-left">
+              {/* Close button */}
+              <button
+                type="button"
+                onClick={() => setSelectedProject(null)}
+                className="absolute top-4 right-4 text-stone-400 hover:text-stone-900 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer z-10"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-            {/* Header */}
-            <div className="flex items-start justify-between space-x-4 mb-4 pb-4 border-b border-stone-100">
-              <div className="space-y-1">
-                <h3 className="text-lg md:text-xl font-bold text-stone-900 font-display break-all">
-                  {selectedProject.title}
-                </h3>
-                <p className="text-[10px] text-stone-400 font-mono uppercase tracking-wider">Project Showcase</p>
-              </div>
-            </div>
+              {/* Media Player / Viewer */}
+              <div className="mb-6 space-y-3">
+                <div className="w-full h-64 md:h-96 bg-stone-50 border border-stone-100 rounded-2xl overflow-hidden relative flex items-center justify-center">
+                  {mediaItems.length > 0 && activeMedia ? (
+                    activeMedia.type === 'video' ? (
+                      (() => {
+                        const ytEmbed = getYouTubeEmbedUrl(activeMedia.url);
+                        if (ytEmbed) {
+                          return (
+                            <iframe
+                              src={ytEmbed}
+                              className="w-full h-full border-0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          );
+                        } else {
+                          return (
+                            <video
+                              src={activeMedia.url}
+                              controls
+                              className="w-full h-full object-contain bg-black"
+                            />
+                          );
+                        }
+                      })()
+                    ) : (
+                      <img src={activeMedia.url} alt={selectedProject.title} className="w-full h-full object-cover" />
+                    )
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-stone-300 py-12">
+                      <Code className="w-12 h-12 mb-2 stroke-[1.5]" />
+                      <span className="text-[11px] font-mono">無媒體檔案</span>
+                    </div>
+                  )}
+                </div>
 
-            {/* Tech Stack */}
-            {selectedProject.techStack && (
-              <div className="mb-6">
-                <h4 className="text-[11px] font-mono tracking-wider uppercase text-stone-400 font-bold mb-2">使用技術 / Tech Stack</h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedProject.techStack.split(',').map((t) => t.trim()).filter((t) => t.length > 0).map((tech, i) => (
-                    <span
-                      key={i}
-                      className="px-2.5 py-1 text-xs font-mono rounded-lg bg-stone-50 text-stone-600 border border-stone-200"
-                    >
-                      {tech}
-                    </span>
-                  ))}
+                {/* Media Thumbnails Row */}
+                {mediaItems.length > 1 && (
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none">
+                    {mediaItems.map((item, idx) => {
+                      const isSelected = idx === activeMediaIndex;
+                      const isVideo = item.type === 'video';
+                      
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setActiveMediaIndex(idx)}
+                          className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all bg-stone-50 flex items-center justify-center cursor-pointer ${
+                            isSelected ? 'border-stone-950 scale-105 shadow-sm' : 'border-stone-200 hover:border-stone-400'
+                          }`}
+                        >
+                          {isVideo ? (
+                            <div className="w-full h-full flex flex-col items-center justify-center bg-stone-900 text-stone-100 p-1 text-center">
+                              <div className="w-6 h-6 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center shadow-md animate-pulse">
+                                <svg className="w-3.5 h-3.5 fill-current ml-0.5 text-stone-900" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                              </div>
+                              <span className="text-[8px] font-bold mt-1 tracking-tight truncate w-full">影片</span>
+                            </div>
+                          ) : (
+                            <img src={item.url} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Header */}
+              <div className="flex items-start justify-between space-x-4 mb-4 pb-4 border-b border-stone-100">
+                <div className="space-y-1">
+                  <h3 className="text-lg md:text-xl font-bold text-stone-900 font-display break-all">
+                    {selectedProject.title}
+                  </h3>
+                  <p className="text-[10px] text-stone-400 font-mono uppercase tracking-wider">Project Showcase</p>
                 </div>
               </div>
-            )}
 
-            {/* Content Description */}
-            <div className="mb-8">
-              <h4 className="text-[11px] font-mono tracking-wider uppercase text-stone-400 font-bold mb-2">專案簡介 / Description</h4>
-              <div className="text-stone-700 text-sm md:text-base leading-relaxed whitespace-pre-wrap font-sans break-all">
-                {selectedProject.description}
+              {/* Tech Stack */}
+              {selectedProject.techStack && (
+                <div className="mb-6">
+                  <h4 className="text-[11px] font-mono tracking-wider uppercase text-stone-400 font-bold mb-2">使用技術 / Tech Stack</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedProject.techStack.split(',').map((t) => t.trim()).filter((t) => t.length > 0).map((tech, i) => (
+                      <span
+                        key={i}
+                        className="px-2.5 py-1 text-xs font-mono rounded-lg bg-stone-50 text-stone-600 border border-stone-200"
+                      >
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Content Description */}
+              <div className="mb-8">
+                <h4 className="text-[11px] font-mono tracking-wider uppercase text-stone-400 font-bold mb-2">專案簡介 / Description</h4>
+                <div className="text-stone-700 text-sm md:text-base leading-relaxed whitespace-pre-wrap font-sans break-all">
+                  {selectedProject.description}
+                </div>
+              </div>
+
+              {/* Footer buttons */}
+              <div className="pt-4 border-t border-stone-100 flex items-center justify-between gap-4">
+                {selectedProject.link ? (
+                  <a
+                    href={selectedProject.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-2 bg-stone-900 hover:bg-stone-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md shadow-stone-900/10 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <ExternalLink className="w-4 h-4 text-amber-400" />
+                    <span>瀏覽作品連結</span>
+                  </a>
+                ) : (
+                  <div />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedProject(null)}
+                  className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 font-bold px-5 py-2.5 rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  關閉視窗
+                </button>
               </div>
             </div>
-
-            {/* Footer buttons */}
-            <div className="pt-4 border-t border-stone-100 flex items-center justify-between gap-4">
-              {selectedProject.link ? (
-                <a
-                  href={selectedProject.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-2 bg-stone-900 hover:bg-stone-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md shadow-stone-900/10 hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <ExternalLink className="w-4 h-4 text-amber-400" />
-                  <span>瀏覽作品連結</span>
-                </a>
-              ) : (
-                <div />
-              )}
-              <button
-                onClick={() => setSelectedProject(null)}
-                className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 font-bold px-5 py-2.5 rounded-xl text-xs transition-all cursor-pointer"
-              >
-                關閉視窗
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body
+        );
+      })()}
     </div>
   );
 };

@@ -42,4 +42,6 @@ export interface Project {
   techStack?: string;
   userId: string;
   order?: number;
+  extraImages?: string[]; // Up to 5 base64 or URLs
+  videoUrl?: string; // Standard video path or YouTube URL
 }

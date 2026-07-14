@@ -348,6 +348,8 @@ export default function App() {
         link: updatedProj.link || '',
         techStack: updatedProj.techStack || '',
         order: updatedProj.order || 0,
+        extraImages: updatedProj.extraImages || [],
+        videoUrl: updatedProj.videoUrl || '',
       }).catch((err) => {
         handleFirestoreError(err, OperationType.UPDATE, `projects/${updatedProj.id}`);
         throw err;
