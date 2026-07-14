@@ -1,0 +1,6 @@
+{
+  "name": "個人簡歷與作品後台管理系統",
+  "description": "一個具備後台管理功能的個人簡歷與作品展示網頁。支持自我介紹、學歷、工作經歷、作品管理以及圖片上傳，並使用 Firebase Firestore 進行數據儲存。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

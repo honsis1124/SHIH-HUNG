@@ -1,0 +1,142 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity-specific validations
+    function isValidProfile(data) {
+      return data.name is string && data.name.size() <= 100
+        && data.title is string && data.title.size() <= 100
+        && data.bio is string && data.bio.size() <= 2000
+        && data.email is string && data.email.size() <= 100
+        && (data.phone == null || (data.phone is string && data.phone.size() <= 20))
+        && (data.avatar == null || (data.avatar is string && data.avatar.size() <= 500000))
+        && (data.skills == null || (data.skills is string && data.skills.size() <= 1000))
+        && (data.github == null || (data.github is string && data.github.size() <= 200))
+        && (data.linkedin == null || (data.linkedin is string && data.linkedin.size() <= 200))
+        && (data.website == null || (data.website is string && data.website.size() <= 200))
+        && (data.updatedAt == null || data.updatedAt is string);
+    }
+
+    function isValidEducation(data) {
+      return data.school is string && data.school.size() <= 100
+        && data.major is string && data.major.size() <= 100
+        && data.degree is string && data.degree.size() <= 50
+        && data.startDate is string && data.startDate.size() <= 20
+        && data.endDate is string && data.endDate.size() <= 20
+        && (data.description == null || (data.description is string && data.description.size() <= 1000))
+        && data.userId == request.auth.uid;
+    }
+
+    function isValidExperience(data) {
+      return data.company is string && data.company.size() <= 100
+        && data.role is string && data.role.size() <= 100
+        && data.startDate is string && data.startDate.size() <= 20
+        && data.endDate is string && data.endDate.size() <= 20
+        && (data.description == null || (data.description is string && data.description.size() <= 2000))
+        && data.userId == request.auth.uid;
+    }
+
+    function isValidProject(data) {
+      return data.title is string && data.title.size() <= 100
+        && data.description is string && data.description.size() <= 1000
+        && (data.image == null || (data.image is string && data.image.size() <= 500000))
+        && (data.link == null || (data.link is string && data.link.size() <= 200))
+        && (data.techStack == null || (data.techStack is string && data.techStack.size() <= 500))
+        && (data.order == null || data.order is int)
+        && data.userId == request.auth.uid;
+    }
+
+    // Match rules per collection
+    match /profiles/{userId} {
+      allow read: if true;
+      allow create: if isVerifiedUser() 
+        && userId == request.auth.uid 
+        && isValidProfile(incoming()) 
+        && incoming().keys().hasAll(['name', 'title', 'bio', 'email'])
+        && incoming().keys().size() <= 11;
+      
+      allow update: if isVerifiedUser() 
+        && userId == request.auth.uid 
+        && isValidProfile(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'title', 'bio', 'email', 'phone', 'avatar', 'skills', 'github', 'linkedin', 'website', 'updatedAt']);
+        
+      allow delete: if isVerifiedUser() && userId == request.auth.uid;
+    }
+
+    match /educations/{educationId} {
+      allow read: if true;
+      allow create: if isVerifiedUser() 
+        && isValidId(educationId) 
+        && isValidEducation(incoming()) 
+        && incoming().keys().hasAll(['school', 'major', 'degree', 'startDate', 'endDate', 'userId'])
+        && incoming().keys().size() <= 8;
+        
+      allow update: if isVerifiedUser() 
+        && isValidId(educationId) 
+        && existing().userId == request.auth.uid 
+        && isValidEducation(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['school', 'major', 'degree', 'startDate', 'endDate', 'description', 'userId']);
+        
+      allow delete: if isVerifiedUser() && isValidId(educationId) && existing().userId == request.auth.uid;
+    }
+
+    match /experiences/{experienceId} {
+      allow read: if true;
+      allow create: if isVerifiedUser() 
+        && isValidId(experienceId) 
+        && isValidExperience(incoming()) 
+        && incoming().keys().hasAll(['company', 'role', 'startDate', 'endDate', 'userId'])
+        && incoming().keys().size() <= 7;
+        
+      allow update: if isVerifiedUser() 
+        && isValidId(experienceId) 
+        && existing().userId == request.auth.uid 
+        && isValidExperience(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['company', 'role', 'startDate', 'endDate', 'description', 'userId']);
+        
+      allow delete: if isVerifiedUser() && isValidId(experienceId) && existing().userId == request.auth.uid;
+    }
+
+    match /projects/{projectId} {
+      allow read: if true;
+      allow create: if isVerifiedUser() 
+        && isValidId(projectId) 
+        && isValidProject(incoming()) 
+        && incoming().keys().hasAll(['title', 'description', 'userId'])
+        && incoming().keys().size() <= 8;
+        
+      allow update: if isVerifiedUser() 
+        && isValidId(projectId) 
+        && existing().userId == request.auth.uid 
+        && isValidProject(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'image', 'link', 'techStack', 'order', 'userId']);
+        
+      allow delete: if isVerifiedUser() && isValidId(projectId) && existing().userId == request.auth.uid;
+    }
+  }
+}
