@@ -113,16 +113,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         {/* Cool modern design grids */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
         <div className="absolute top-[-10%] left-[-10%] h-[150%] w-[120%] bg-[radial-gradient(ellipse_60%_80%_at_50%_-20%,rgba(120,119,198,0.22),rgba(255,255,255,0))]"></div>
-        {isEditMode && !isEditing && (
-          <button
-            id="edit-profile-btn"
-            onClick={() => setIsEditing(true)}
-            className="absolute right-6 bottom-4 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-slate-700/80 px-4 py-2 rounded-xl text-xs font-semibold shadow-sm flex items-center space-x-1.5 transition-all cursor-pointer"
-          >
-            <Edit3 className="w-3.5 h-3.5 text-indigo-400" />
-            <span>編輯個人檔案</span>
-          </button>
-        )}
       </div>
 
       {isEditing ? (
@@ -291,6 +281,16 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         </form>
       ) : (
         <div className="p-6 sm:p-8 -mt-16 relative z-10">
+          {isEditMode && (
+            <button
+              id="edit-profile-btn"
+              onClick={() => setIsEditing(true)}
+              className="absolute right-6 top-4 bg-[#161b33]/90 hover:bg-[#1e264a]/90 text-white backdrop-blur-md border border-slate-700/80 px-4 py-2 rounded-xl text-xs font-semibold shadow-lg flex items-center space-x-1.5 transition-all cursor-pointer z-20"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-indigo-400" />
+              <span>編輯個人檔案</span>
+            </button>
+          )}
           <div className="flex flex-col md:flex-row gap-8 items-start">
             {/* Avatar Display */}
             <div className="mx-auto md:mx-0 flex-shrink-0">
