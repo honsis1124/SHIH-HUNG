@@ -350,9 +350,9 @@ export default function App() {
   // Show dynamic loader when initializing
   if (!appReady) {
     return (
-      <div className="min-h-screen bg-[#0a0f1d] flex flex-col items-center justify-center">
-        <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mb-3" />
-        <p className="text-xs text-slate-400 font-medium font-mono tracking-wider">系統正在與 Firebase 同步，請稍候...</p>
+      <div className="min-h-screen bg-[#faf9f5] flex flex-col items-center justify-center">
+        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
+        <p className="text-xs text-stone-500 font-medium font-mono tracking-wider">系統正在與 Firebase 同步，請稍候...</p>
       </div>
     );
   }
@@ -360,7 +360,7 @@ export default function App() {
   const isOwner = user?.email === OWNER_EMAIL;
 
   return (
-    <div className="min-h-screen bg-[#0a0f1d] pb-16 flex flex-col font-sans selection:bg-indigo-500/25 selection:text-indigo-200">
+    <div className="min-h-screen bg-[#faf9f5] pb-24 flex flex-col font-sans selection:bg-stone-900 selection:text-white transition-colors duration-500">
       {/* Navbar navigation controls */}
       <Navbar
         user={user}
@@ -374,14 +374,14 @@ export default function App() {
         
         {/* Unauthenticated / Empty database warning if no profile is initialized */}
         {!profile && !dataLoading && (
-          <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6 mb-8 shadow-xl">
+          <div className="bg-amber-500/5 border border-amber-500/25 rounded-2xl p-6 mb-8 shadow-sm">
             <div className="flex items-start space-x-3.5">
-              <ShieldAlert className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5 animate-pulse" />
+              <ShieldAlert className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5 animate-pulse" />
               <div>
-                <h3 className="text-sm font-bold text-amber-300">
+                <h3 className="text-sm font-bold text-stone-900">
                   {isOwner ? '歡迎！請初始化您的個人簡歷' : '作品集資料尚未初始化'}
                 </h3>
-                <p className="text-xs text-amber-400/80 mt-1.5 max-w-2xl leading-relaxed">
+                <p className="text-xs text-stone-600 mt-1.5 max-w-2xl leading-relaxed">
                   {isOwner
                     ? '資料庫中目前沒有本網站的個人簡歷。請在上方登入您的擁有者 Google 帳號後，進入「後台管理」並填寫個人檔案資訊。點選儲存後即可完成初始化！'
                     : `履歷擁有者 (${OWNER_EMAIL}) 尚未初始化此網站的資料庫。如果您是擁有者，請點擊右上方登入按鈕。`}
@@ -389,9 +389,9 @@ export default function App() {
                 {isOwner && (
                   <button
                     onClick={() => setIsEditMode(true)}
-                    className="mt-3.5 inline-flex items-center space-x-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-lg transition-all cursor-pointer"
+                    className="mt-3.5 inline-flex items-center space-x-1.5 bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                     <span>前往後台管理初始化</span>
                   </button>
                 )}
@@ -402,14 +402,14 @@ export default function App() {
 
         {/* Edit mode warning badge */}
         {isEditMode && isOwner && (
-          <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-4 mb-8 flex items-center justify-between shadow-xl">
-            <div className="flex items-center space-x-2 text-indigo-300 text-xs font-semibold">
-              <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-ping" />
+          <div className="bg-amber-50/50 border border-amber-200 rounded-2xl p-4 mb-8 flex items-center justify-between shadow-sm animate-fade-in">
+            <div className="flex items-center space-x-2 text-stone-800 text-xs font-semibold">
+              <div className="w-2 h-2 bg-amber-600 rounded-full animate-ping" />
               <span>後台管理模式已啟用。您現在可以直接新增、編輯或刪除各項學經歷與作品展示。</span>
             </div>
             <button
               onClick={() => setIsEditMode(false)}
-              className="text-xs text-indigo-400 hover:text-indigo-300 font-bold font-mono transition-colors cursor-pointer"
+              className="text-xs text-stone-800 hover:text-stone-950 font-bold transition-colors cursor-pointer"
             >
               切換前台預覽
             </button>
@@ -419,35 +419,24 @@ export default function App() {
         {/* Database Loading Spinner */}
         {dataLoading ? (
           <div className="py-24 text-center">
-            <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mx-auto mb-3" />
-            <p className="text-xs text-slate-500 font-semibold font-mono tracking-wide">Loading dynamic portfolio content...</p>
+            <Loader2 className="w-8 h-8 text-stone-800 animate-spin mx-auto mb-3" />
+            <p className="text-xs text-stone-500 font-semibold font-mono tracking-wide">Loading dynamic portfolio content...</p>
           </div>
         ) : (
-          <div className="space-y-8 animate-fade-in">
-            {/* 1. Self Introduction Profile Section */}
+          <div className="animate-fade-in space-y-12">
             {(profile || isEditMode) && (
-              <ProfileSection
-                profile={profile}
-                onSave={handleSaveProfile}
-                isEditMode={isEditMode}
-              />
-            )}
-
-            {/* Render rest sections if profile is present or if we are building it in editor */}
-            {(profile || isEditMode) && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left/Main Column - Experience & Education */}
-                <div className="lg:col-span-2 space-y-8">
-                  {/* 2. Experience Section */}
-                  <ExperienceSection
-                    experiences={experiences}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                
+                {/* Left Column (Sticky on Desktop) - Profile & Education */}
+                <div className="lg:col-span-5 space-y-8 lg:sticky lg:top-24 h-fit">
+                  {/* 1. Self Introduction Profile Section */}
+                  <ProfileSection
+                    profile={profile}
+                    onSave={handleSaveProfile}
                     isEditMode={isEditMode}
-                    onAdd={handleAddExperience}
-                    onUpdate={handleUpdateExperience}
-                    onDelete={handleDeleteExperience}
                   />
 
-                  {/* 3. Education Section */}
+                  {/* 2. Education Section */}
                   <EducationSection
                     educations={educations}
                     isEditMode={isEditMode}
@@ -457,8 +446,17 @@ export default function App() {
                   />
                 </div>
 
-                {/* Right Column - Project / Portfolio Achievements */}
-                <div className="lg:col-span-3">
+                {/* Right Column - Experience & Projects (Bento Asymmetric) */}
+                <div className="lg:col-span-7 space-y-8">
+                  {/* 3. Experience Section */}
+                  <ExperienceSection
+                    experiences={experiences}
+                    isEditMode={isEditMode}
+                    onAdd={handleAddExperience}
+                    onUpdate={handleUpdateExperience}
+                    onDelete={handleDeleteExperience}
+                  />
+
                   {/* 4. Projects Showcase Section */}
                   <ProjectSection
                     projects={projects}
@@ -468,6 +466,7 @@ export default function App() {
                     onDelete={handleDeleteProject}
                   />
                 </div>
+
               </div>
             )}
           </div>
@@ -475,14 +474,14 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer id="app-footer" className="mt-24 border-t border-slate-800/60 py-8 bg-[#0d1124]/30 text-center">
-        <p className="text-[11px] text-slate-500 font-semibold tracking-wide">
+      <footer id="app-footer" className="mt-24 border-t border-stone-200/80 py-10 bg-stone-100/50 text-center">
+        <p className="text-[11px] text-stone-500 font-semibold tracking-wide">
           個人簡歷與作品展示後台管理系統 · 本服務由 Google Firebase 安全儲存
         </p>
-        <p className="text-[10px] text-slate-400 mt-1.5 flex items-center justify-center space-x-1">
-          <span className="text-slate-500">Made with</span>
+        <p className="text-[10px] text-stone-400 mt-2 flex items-center justify-center space-x-1">
+          <span className="text-stone-500">Made with</span>
           <Heart className="w-3 h-3 text-red-500 fill-red-500" />
-          <span className="text-slate-500">for job applications</span>
+          <span className="text-stone-500">for job applications</span>
         </p>
       </footer>
     </div>
