@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Project } from '../types';
 import { LayoutGrid, Plus, Trash2, Edit2, Code, Camera, Save, X, ExternalLink, Check } from 'lucide-react';
 import { compressImage } from '../utils/imageCompressor';
@@ -21,6 +22,7 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   // Form states
   const [title, setTitle] = useState('');
@@ -316,7 +318,8 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
               return (
                 <div
                   key={proj.id}
-                  className={`group relative flex flex-col bg-white border border-stone-200 overflow-hidden shadow-sm hover:shadow-[8px_8px_0px_rgba(28,25,23,0.04)] hover:border-stone-300 transition-all duration-300 ${cornerStyle} ${staggerOffset}`}
+                  onClick={() => setSelectedProject(proj)}
+                  className={`group relative flex flex-col bg-white border border-stone-200 overflow-hidden shadow-sm hover:shadow-[8px_8px_0px_rgba(28,25,23,0.04)] hover:border-stone-300 transition-all duration-300 cursor-pointer ${cornerStyle} ${staggerOffset}`}
                 >
                   {/* Image banner preview */}
                   <div className="h-44 bg-stone-50 overflow-hidden relative border-b border-stone-100 flex items-center justify-center">
@@ -339,6 +342,7 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
                         href={proj.link}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
                         className="absolute right-3 bottom-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-md border border-stone-200 flex items-center justify-center text-stone-700 hover:text-stone-900 hover:scale-105 hover:bg-white transition-all shadow-sm"
                         title="查看作品連結"
                       >
@@ -380,10 +384,16 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
 
                   {/* Administrative overlays */}
                   {isEditMode && (
-                    <div className="absolute top-2 left-2 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1 rounded-lg border border-stone-200 shadow-md">
+                    <div 
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute top-2 left-2 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1 rounded-lg border border-stone-200 shadow-md"
+                    >
                       <button
                         id={`edit-proj-btn-${proj.id}`}
-                        onClick={() => handleEditClick(proj)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditClick(proj);
+                        }}
                         className="p-1 rounded text-stone-500 hover:text-stone-900 hover:bg-stone-50 transition-colors cursor-pointer"
                         title="編輯"
                       >
@@ -391,7 +401,10 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
                       </button>
                       <button
                         id={`delete-proj-btn-${proj.id}`}
-                        onClick={() => handleDeleteClick(proj.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(proj.id);
+                        }}
                         className="p-1 rounded text-stone-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                         title="刪除"
                       >
@@ -404,6 +417,92 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
             })
         )}
       </div>
+
+      {/* Project details modal */}
+      {selectedProject && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-950/45 backdrop-blur-md animate-fade-in select-text">
+          <div className="relative w-full max-w-2xl bg-white border border-stone-200 rounded-3xl shadow-2xl p-6 md:p-8 max-h-[85vh] overflow-y-auto animate-scale-in text-left">
+            {/* Close button */}
+            <button
+              onClick={() => setSelectedProject(null)}
+              className="absolute top-4 right-4 text-stone-400 hover:text-stone-900 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Project Cover Image */}
+            {selectedProject.image ? (
+              <div className="w-full h-64 md:h-80 bg-stone-50 border border-stone-100 rounded-2xl overflow-hidden mb-6 relative">
+                <img src={selectedProject.image} alt={selectedProject.title} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="w-full h-40 bg-stone-50 border border-stone-200/60 rounded-2xl flex flex-col items-center justify-center text-stone-300 mb-6">
+                <Code className="w-12 h-12 mb-2 stroke-[1.5]" />
+                <span className="text-[11px] font-mono">No Cover Photo</span>
+              </div>
+            )}
+
+            {/* Header */}
+            <div className="flex items-start justify-between space-x-4 mb-4 pb-4 border-b border-stone-100">
+              <div className="space-y-1">
+                <h3 className="text-lg md:text-xl font-bold text-stone-900 font-display break-all">
+                  {selectedProject.title}
+                </h3>
+                <p className="text-[10px] text-stone-400 font-mono uppercase tracking-wider">Project Showcase</p>
+              </div>
+            </div>
+
+            {/* Tech Stack */}
+            {selectedProject.techStack && (
+              <div className="mb-6">
+                <h4 className="text-[11px] font-mono tracking-wider uppercase text-stone-400 font-bold mb-2">使用技術 / Tech Stack</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedProject.techStack.split(',').map((t) => t.trim()).filter((t) => t.length > 0).map((tech, i) => (
+                    <span
+                      key={i}
+                      className="px-2.5 py-1 text-xs font-mono rounded-lg bg-stone-50 text-stone-600 border border-stone-200"
+                    >
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Content Description */}
+            <div className="mb-8">
+              <h4 className="text-[11px] font-mono tracking-wider uppercase text-stone-400 font-bold mb-2">專案簡介 / Description</h4>
+              <div className="text-stone-700 text-sm md:text-base leading-relaxed whitespace-pre-wrap font-sans break-all">
+                {selectedProject.description}
+              </div>
+            </div>
+
+            {/* Footer buttons */}
+            <div className="pt-4 border-t border-stone-100 flex items-center justify-between gap-4">
+              {selectedProject.link ? (
+                <a
+                  href={selectedProject.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-2 bg-stone-900 hover:bg-stone-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md shadow-stone-900/10 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <ExternalLink className="w-4 h-4 text-amber-400" />
+                  <span>瀏覽作品連結</span>
+                </a>
+              ) : (
+                <div />
+              )}
+              <button
+                onClick={() => setSelectedProject(null)}
+                className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 font-bold px-5 py-2.5 rounded-xl text-xs transition-all cursor-pointer"
+              >
+                關閉視窗
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
