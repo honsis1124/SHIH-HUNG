@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { UserProfile } from '../types';
 import { Mail, Phone, Github, Linkedin, Globe, Edit3, Save, Camera, Code, BookOpen, X } from 'lucide-react';
 import { compressImage } from '../utils/imageCompressor';
@@ -336,7 +337,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               </div>
 
               {/* Autobiography Modal */}
-              {showBioModal && (
+              {showBioModal && createPortal(
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-950/45 backdrop-blur-md animate-fade-in select-text">
                   <div className="relative w-full max-w-2xl bg-white border border-stone-200 rounded-3xl shadow-2xl p-6 md:p-8 max-h-[85vh] overflow-y-auto animate-scale-in text-left">
                     {/* Close button */}
@@ -373,7 +374,8 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                       </button>
                     </div>
                   </div>
-                </div>
+                </div>,
+                document.body
               )}
 
               {/* Skills Display */}
