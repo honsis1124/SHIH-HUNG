@@ -16,7 +16,8 @@ import {
   auth,
   testConnection,
   handleFirestoreError,
-  OperationType
+  OperationType,
+  loginWithGoogle
 } from './firebase';
 import { UserProfile, Education, Experience, Project } from './types';
 import { Navbar } from './components/Navbar';
@@ -24,7 +25,7 @@ import { ProfileSection } from './components/ProfileSection';
 import { EducationSection } from './components/EducationSection';
 import { ExperienceSection } from './components/ExperienceSection';
 import { ProjectSection } from './components/ProjectSection';
-import { ShieldAlert, Briefcase, GraduationCap, LayoutGrid, Heart, Sparkles, Loader2 } from 'lucide-react';
+import { ShieldAlert, Briefcase, GraduationCap, LayoutGrid, Heart, Sparkles, Loader2, Mail, Phone, Github, Linkedin, Globe, LogIn, X, ExternalLink } from 'lucide-react';
 
 const OWNER_EMAIL = "h0928060675@gmail.com";
 
@@ -33,6 +34,34 @@ export default function App() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [appReady, setAppReady] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const handleLoginClick = async () => {
+    // 偵測是否在 iframe 中
+    const isIframe = window.self !== window.top;
+    if (isIframe) {
+      setErrorMsg("偵測到您目前在 AI Studio 的預覽窗格 (iframe) 內。因瀏覽器安全機制限制，跨域彈出式視窗無法在 iframe 內正常回傳憑證，導致視窗自動關閉。");
+      setShowHelpModal(true);
+      return;
+    }
+
+    try {
+      await loginWithGoogle();
+    } catch (error: any) {
+      console.error("Login Error Catch:", error);
+      let customError = error?.message || String(error);
+      if (error?.code === 'auth/popup-blocked') {
+        customError = "您的瀏覽器封鎖了 Google 彈出式視窗。請於網址列右方點擊並允許此網域彈出視窗後，再試一次。";
+      } else if (error?.code === 'auth/popup-closed-by-user') {
+        customError = "登入視窗已手動關閉。如果是開啟後「一秒內自動關閉」，通常代表此網域尚未加入「Firebase 授權網域」或瀏覽器封鎖了第三方 Cookie。";
+      } else if (error?.code === 'auth/network-request-failed') {
+        customError = "網路連線失敗，請確認您的網路狀況或 Firebase 設定是否正確。";
+      }
+      setErrorMsg(customError);
+      setShowHelpModal(true);
+    }
+  };
 
   // Resume State
   const [ownerUid, setOwnerUid] = useState<string | null>(null);
@@ -425,39 +454,41 @@ export default function App() {
         ) : (
           <div className="animate-fade-in space-y-12">
             {(profile || isEditMode) && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+              <div className="space-y-8 lg:space-y-12">
                 
-                {/* Left Column (Sticky on Desktop) - Profile & Education */}
-                <div className="lg:col-span-5 space-y-8 lg:sticky lg:top-24 h-fit">
-                  {/* 1. Self Introduction Profile Section */}
-                  <ProfileSection
-                    profile={profile}
-                    onSave={handleSaveProfile}
-                    isEditMode={isEditMode}
-                  />
+                {/* Top Grid: Profile (Left) and Education + Experience (Right) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                  {/* Left Column (Top-Left): Profile Section */}
+                  <div className="lg:col-span-5 lg:sticky lg:top-24 h-fit">
+                    <ProfileSection
+                      profile={profile}
+                      onSave={handleSaveProfile}
+                      isEditMode={isEditMode}
+                    />
+                  </div>
 
-                  {/* 2. Education Section */}
-                  <EducationSection
-                    educations={educations}
-                    isEditMode={isEditMode}
-                    onAdd={handleAddEducation}
-                    onUpdate={handleUpdateEducation}
-                    onDelete={handleDeleteEducation}
-                  />
+                  {/* Right Column (Top-Right: Education, Bottom-Right: Experience) */}
+                  <div className="lg:col-span-7 space-y-8">
+                    <EducationSection
+                      educations={educations}
+                      isEditMode={isEditMode}
+                      onAdd={handleAddEducation}
+                      onUpdate={handleUpdateEducation}
+                      onDelete={handleDeleteEducation}
+                    />
+
+                    <ExperienceSection
+                      experiences={experiences}
+                      isEditMode={isEditMode}
+                      onAdd={handleAddExperience}
+                      onUpdate={handleUpdateExperience}
+                      onDelete={handleDeleteExperience}
+                    />
+                  </div>
                 </div>
 
-                {/* Right Column - Experience & Projects (Bento Asymmetric) */}
-                <div className="lg:col-span-7 space-y-8">
-                  {/* 3. Experience Section */}
-                  <ExperienceSection
-                    experiences={experiences}
-                    isEditMode={isEditMode}
-                    onAdd={handleAddExperience}
-                    onUpdate={handleUpdateExperience}
-                    onDelete={handleDeleteExperience}
-                  />
-
-                  {/* 4. Projects Showcase Section */}
+                {/* Bottom Section (Spans across full width): Projects Showcase */}
+                <div className="w-full">
                   <ProjectSection
                     projects={projects}
                     isEditMode={isEditMode}
@@ -474,16 +505,197 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer id="app-footer" className="mt-24 border-t border-stone-200/80 py-10 bg-stone-100/50 text-center">
-        <p className="text-[11px] text-stone-500 font-semibold tracking-wide">
-          個人簡歷與作品展示後台管理系統 · 本服務由 Google Firebase 安全儲存
-        </p>
-        <p className="text-[10px] text-stone-400 mt-2 flex items-center justify-center space-x-1">
-          <span className="text-stone-500">Made with</span>
-          <Heart className="w-3 h-3 text-red-500 fill-red-500" />
-          <span className="text-stone-500">for job applications</span>
-        </p>
+      <footer id="app-footer" className="mt-24 border-t border-stone-200 bg-stone-50/70 py-12 md:py-16 text-stone-600 transition-colors duration-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+            
+            {/* Left side: branding & login */}
+            <div className="space-y-4 text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start space-x-2">
+                <div className="w-6 h-6 rounded bg-stone-900 text-white flex items-center justify-center text-xs font-bold">
+                  R
+                </div>
+                <span className="font-display font-bold text-sm text-stone-900 tracking-tight">
+                  Bespoke Resume Portfolio
+                </span>
+              </div>
+              <p className="text-xs text-stone-400 max-w-sm">
+                個人專業履歷與作品展示平台 · 基於極簡北歐風格設計。
+              </p>
+              
+              {/* Login Button in Footer */}
+              {!user && (
+                <div className="pt-2">
+                  <button
+                    id="footer-login-btn"
+                    onClick={handleLoginClick}
+                    className="inline-flex items-center space-x-1.5 bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                  >
+                    <LogIn className="w-3.5 h-3.5 text-amber-400" />
+                    <span>擁有者登入系統</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Right side: contact details (email, phone, github, website) */}
+            <div className="flex flex-col items-center md:items-end gap-4">
+              <span className="text-[10px] font-mono tracking-widest uppercase text-stone-400 font-bold">
+                Contact & Connections
+              </span>
+              <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-3 text-xs">
+                {profile?.email && (
+                  <a
+                    href={`mailto:${profile.email}`}
+                    className="flex items-center space-x-1.5 text-stone-600 hover:text-stone-950 hover:underline transition-colors"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-stone-400" />
+                    <span>{profile.email}</span>
+                  </a>
+                )}
+                {profile?.phone && (
+                  <a
+                    href={`tel:${profile.phone}`}
+                    className="flex items-center space-x-1.5 text-stone-600 hover:text-stone-950 hover:underline transition-colors"
+                  >
+                    <Phone className="w-3.5 h-3.5 text-stone-400" />
+                    <span>{profile.phone}</span>
+                  </a>
+                )}
+                {profile?.github && (
+                  <a
+                    href={profile.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-1.5 text-stone-600 hover:text-stone-950 hover:underline transition-colors"
+                  >
+                    <Github className="w-3.5 h-3.5 text-stone-400" />
+                    <span>GitHub</span>
+                  </a>
+                )}
+                {profile?.linkedin && (
+                  <a
+                    href={profile.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-1.5 text-stone-600 hover:text-stone-950 hover:underline transition-colors"
+                  >
+                    <Linkedin className="w-3.5 h-3.5 text-stone-400" />
+                    <span>LinkedIn</span>
+                  </a>
+                )}
+                {profile?.website && (
+                  <a
+                    href={profile.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-1.5 text-stone-600 hover:text-stone-950 hover:underline transition-colors"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-stone-400" />
+                    <span>個人網頁</span>
+                  </a>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
       </footer>
+
+      {/* 登入障礙排除指引 Modal */}
+      {showHelpModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-950/45 backdrop-blur-md animate-fade-in select-text">
+          <div className="relative w-full max-w-xl bg-white border border-stone-200 rounded-3xl shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto">
+            {/* Close button */}
+            <button
+              onClick={() => setShowHelpModal(false)}
+              className="absolute top-4 right-4 text-stone-400 hover:text-stone-900 p-1 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-800">
+                <ShieldAlert className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-stone-900">Google 登入障礙排除指引</h3>
+                <p className="text-[10px] text-stone-500 font-mono uppercase tracking-wider">Owner Sign-In Troubleshooting</p>
+              </div>
+            </div>
+
+            {/* Error Message details */}
+            {errorMsg && (
+              <div className="bg-red-500/5 border border-red-100 rounded-xl p-4 mb-6 text-left text-xs text-stone-700">
+                <h4 className="text-xs font-bold text-red-800 mb-1">系統偵測到以下狀況：</h4>
+                <p className="text-xs text-stone-600 leading-relaxed">{errorMsg}</p>
+              </div>
+            )}
+
+            {/* Steps */}
+            <div className="space-y-5 text-xs text-stone-700 text-left">
+              <div className="bg-stone-50 rounded-xl p-4 border border-stone-200">
+                <div className="flex items-center space-x-2 text-stone-900 font-bold mb-2">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-stone-100 text-[10px] font-mono border border-stone-200">1</span>
+                  <span>您是否正位於 AI Studio 預覽畫面中？</span>
+                </div>
+                <p className="leading-relaxed text-stone-600 pl-7 mb-3">
+                  由於瀏覽器的 iframe 沙盒安全限制，跨域登入彈窗無法直接在預覽窗格中將憑證回傳至內部網頁。
+                </p>
+                <div className="pl-7">
+                  <button
+                    onClick={() => {
+                      window.open(window.location.href, '_blank');
+                      setShowHelpModal(false);
+                    }}
+                    className="inline-flex items-center space-x-1.5 bg-stone-900 hover:bg-stone-800 text-white px-3.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer shadow-sm"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>在新分頁開啟本網頁以進行登入</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-stone-50 rounded-xl p-4 border border-stone-200">
+                <div className="flex items-center space-x-2 text-stone-900 font-bold mb-2">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-stone-100 text-[10px] font-mono border border-stone-200">2</span>
+                  <span>您在 GitHub Pages 上看到空白或無法登入？</span>
+                </div>
+                <div className="leading-relaxed text-stone-600 pl-7 space-y-1.5">
+                  <p>
+                    請確保已將您的 GitHub Pages 網域設定為 Firebase 的 **「授權網域」**：
+                  </p>
+                  <ol className="list-decimal pl-4 font-mono text-[11px] text-stone-800 space-y-1">
+                    <li>開啟您的 <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" className="text-amber-800 underline hover:text-amber-950 inline-flex items-center space-x-0.5"><span>Firebase Console</span><ExternalLink className="w-2.5 h-2.5" /></a></li>
+                    <li>進入 <strong>Authentication &gt; Settings &gt; Authorized domains</strong></li>
+                    <li>點擊「新增網域」，輸入：<code className="bg-white px-1.5 py-0.5 rounded text-stone-800 text-[10px] border border-stone-200">h0928060675.github.io</code></li>
+                  </ol>
+                </div>
+              </div>
+
+              <div className="bg-stone-50 rounded-xl p-4 border border-stone-200">
+                <div className="flex items-center space-x-2 text-stone-900 font-bold mb-2">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-stone-100 text-[10px] font-mono border border-stone-200">3</span>
+                  <span>瀏覽器封鎖了第三方 Cookie / 彈窗？</span>
+                </div>
+                <p className="leading-relaxed text-stone-600 pl-7">
+                  若瀏覽器阻擋第三方 Cookie（例如無痕模式），登入後彈窗會自動關閉且維持未登入。請允許 Cookie 後再重試。
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-end">
+              <button
+                onClick={() => setShowHelpModal(false)}
+                className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer"
+              >
+                我知道了
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

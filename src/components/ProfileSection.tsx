@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { UserProfile } from '../types';
-import { Mail, Phone, Github, Linkedin, Globe, Edit3, Save, Camera, Code } from 'lucide-react';
+import { Mail, Phone, Github, Linkedin, Globe, Edit3, Save, Camera, Code, BookOpen, X } from 'lucide-react';
 import { compressImage } from '../utils/imageCompressor';
 
 interface ProfileSectionProps {
@@ -16,6 +16,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showBioModal, setShowBioModal] = useState(false);
   
   // Local form state
   const [name, setName] = useState(profile?.name || '');
@@ -317,48 +318,63 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 </p>
               </div>
 
-              {/* Bio / About */}
-              <div className="text-stone-600 text-sm md:text-base leading-relaxed whitespace-pre-wrap max-w-3xl">
-                {bio || '歡迎登入後點選編輯按鈕，填寫您的自我介紹。此處支持詳盡的履歷自傳與職涯規劃。'}
+              {/* Bio Preview & Modal Trigger Button */}
+              <div className="space-y-4">
+                <p className="text-stone-600 text-sm leading-relaxed max-w-3xl text-left">
+                  {bio ? (bio.length > 150 ? `${bio.slice(0, 150)}...` : bio) : '歡迎登入後點選編輯按鈕，填寫您的自我介紹與詳盡的履歷自傳。'}
+                </p>
+                <div className="flex justify-center md:justify-start">
+                  <button
+                    id="view-bio-btn"
+                    onClick={() => setShowBioModal(true)}
+                    className="inline-flex items-center space-x-2 bg-stone-900 hover:bg-stone-800 text-white px-4.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md shadow-stone-900/10 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <BookOpen className="w-4 h-4 text-amber-400" />
+                    <span>觀看個人自傳</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Contacts Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2.5 gap-x-6 pt-4 border-t border-stone-200/80 max-w-3xl">
-                <div className="flex items-center space-x-2 text-xs text-stone-600 justify-center md:justify-start">
-                  <Mail className="w-4 h-4 text-stone-500" />
-                  <span>{email || '尚未設定 Email'}</span>
+              {/* Autobiography Modal */}
+              {showBioModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-950/45 backdrop-blur-md animate-fade-in select-text">
+                  <div className="relative w-full max-w-2xl bg-white border border-stone-200 rounded-3xl shadow-2xl p-6 md:p-8 max-h-[85vh] overflow-y-auto animate-scale-in text-left">
+                    {/* Close button */}
+                    <button
+                      onClick={() => setShowBioModal(false)}
+                      className="absolute top-4 right-4 text-stone-400 hover:text-stone-900 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+
+                    {/* Header */}
+                    <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-stone-100">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-800">
+                        <BookOpen className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-stone-900">個人自傳</h3>
+                        <p className="text-[10px] text-stone-400 font-mono uppercase tracking-wider">My Autobiography</p>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="text-stone-700 text-sm md:text-base leading-relaxed whitespace-pre-wrap font-sans space-y-4">
+                      {bio || '目前尚未填寫個人自傳。請點選「編輯個人檔案」以新增您的自傳內容。'}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-8 pt-4 border-t border-stone-100 flex justify-end">
+                      <button
+                        onClick={() => setShowBioModal(false)}
+                        className="bg-stone-900 hover:bg-stone-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-all cursor-pointer shadow-md shadow-stone-900/10"
+                      >
+                        關閉視窗
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                {phone && (
-                  <div className="flex items-center space-x-2 text-xs text-stone-600 justify-center md:justify-start">
-                    <Phone className="w-4 h-4 text-stone-500" />
-                    <span>{phone}</span>
-                  </div>
-                )}
-                {github && (
-                  <div className="flex items-center space-x-2 text-xs text-stone-600 justify-center md:justify-start">
-                    <Github className="w-4 h-4 text-stone-500" />
-                    <a href={github} target="_blank" rel="noopener noreferrer" className="hover:text-amber-800 hover:underline transition-colors">
-                      {github.replace(/^https?:\/\/(www\.)?/, '')}
-                    </a>
-                  </div>
-                )}
-                {linkedin && (
-                  <div className="flex items-center space-x-2 text-xs text-stone-600 justify-center md:justify-start">
-                    <Linkedin className="w-4 h-4 text-stone-500" />
-                    <a href={linkedin} target="_blank" rel="noopener noreferrer" className="hover:text-amber-800 hover:underline transition-colors">
-                      LinkedIn 個人檔案
-                    </a>
-                  </div>
-                )}
-                {website && (
-                  <div className="flex items-center space-x-2 text-xs text-stone-600 justify-center md:justify-start">
-                    <Globe className="w-4 h-4 text-stone-500" />
-                    <a href={website} target="_blank" rel="noopener noreferrer" className="hover:text-amber-800 hover:underline transition-colors">
-                      個人作品網站
-                    </a>
-                  </div>
-                )}
-              </div>
+              )}
 
               {/* Skills Display */}
               {skillList.length > 0 && (
