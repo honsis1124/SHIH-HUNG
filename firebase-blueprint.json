@@ -190,6 +190,15 @@
         "order": {
           "type": "integer",
           "description": "Sort order index."
+        },
+        "extraImages": {
+          "type": "array",
+          "description": "Additional screenshots (up to 5 images)."
+        },
+        "videoUrl": {
+          "type": "string",
+          "description": "Embedded video or YouTube URL.",
+          "maxLength": 500
         }
       },
       "required": ["title", "description", "userId"]

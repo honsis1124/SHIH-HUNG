@@ -68,6 +68,8 @@ service cloud.firestore {
         && (data.link == null || (data.link is string && data.link.size() <= 200))
         && (data.techStack == null || (data.techStack is string && data.techStack.size() <= 500))
         && (data.order == null || data.order is int)
+        && (data.extraImages == null || (data.extraImages is list && data.extraImages.size() <= 5 && (data.extraImages.size() == 0 || data.extraImages[0] is string)))
+        && (data.videoUrl == null || (data.videoUrl is string && data.videoUrl.size() <= 500))
         && data.userId == request.auth.uid;
     }
 
@@ -128,13 +130,13 @@ service cloud.firestore {
         && isValidId(projectId) 
         && isValidProject(incoming()) 
         && incoming().keys().hasAll(['title', 'description', 'userId'])
-        && incoming().keys().size() <= 8;
+        && incoming().keys().size() <= 11;
         
       allow update: if isVerifiedUser() 
         && isValidId(projectId) 
         && existing().userId == request.auth.uid 
         && isValidProject(incoming())
-        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'image', 'link', 'techStack', 'order', 'userId']);
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'image', 'link', 'techStack', 'order', 'userId', 'extraImages', 'videoUrl']);
         
       allow delete: if isVerifiedUser() && isValidId(projectId) && existing().userId == request.auth.uid;
     }
