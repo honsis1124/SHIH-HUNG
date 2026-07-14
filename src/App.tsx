@@ -520,7 +520,7 @@ export default function App() {
                 </span>
               </div>
               <p className="text-xs text-stone-400 max-w-sm">
-                個人專業履歷與作品展示平台 · 基於極簡北歐風格設計。
+                歡迎來到蕭勢弘的個人網頁，內含個人履歷與作品展示。
               </p>
               
               {/* Login Button in Footer */}
@@ -532,7 +532,7 @@ export default function App() {
                     className="inline-flex items-center space-x-1.5 bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
                   >
                     <LogIn className="w-3.5 h-3.5 text-amber-400" />
-                    <span>擁有者登入系統</span>
+                    <span>本人登入</span>
                   </button>
                 </div>
               )}
