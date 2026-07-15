@@ -977,7 +977,7 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
 
                   {/* Media Thumbnails Row */}
                   {mediaItems.length > 1 && (
-                    <div className="flex items-center gap-2.5 overflow-x-auto py-2.5 px-1 scrollbar-none">
+                    <div className="flex items-center gap-2.5 overflow-x-auto py-3 px-3.5 scrollbar-none">
                       {mediaItems.map((item, idx) => {
                         const isSelected = idx === activeMediaIndex;
                         const isVideo = item.type === 'video';
