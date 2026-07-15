@@ -30,6 +30,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [description, setDescription] = useState('');
+  const [isCurrent, setIsCurrent] = useState(false);
 
   const degreesList = ['博士', '碩士', '學士', '副學士', '大專', '高中職', '其他'];
 
@@ -40,6 +41,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
     setStartDate('');
     setEndDate('');
     setDescription('');
+    setIsCurrent(false);
   };
 
   const handleAddSubmit = async (e: React.FormEvent) => {
@@ -78,6 +80,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
     setStartDate(edu.startDate);
     setEndDate(edu.endDate);
     setDescription(edu.description || '');
+    setIsCurrent(edu.endDate === '至今' || edu.endDate === 'Present');
   };
 
   const handleUpdateSubmit = async (e: React.FormEvent, id: string) => {
@@ -253,13 +256,39 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-stone-700 mb-1">畢業年月 (或預計畢業) <span className="text-red-500">*</span></label>
-              <input
-                type="month"
-                required
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3.5 py-2 bg-white border border-stone-200 text-stone-900 placeholder-stone-400 focus:border-stone-800 focus:ring-1 focus:ring-stone-800/20 rounded-xl text-xs outline-none transition-all"
-              />
+              {isCurrent ? (
+                <input
+                  type="text"
+                  disabled
+                  value="至今"
+                  className="w-full px-3.5 py-2 bg-stone-100 border border-stone-200 text-stone-500 rounded-xl text-xs outline-none transition-all cursor-not-allowed font-medium font-mono"
+                />
+              ) : (
+                <input
+                  type="month"
+                  required
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-white border border-stone-200 text-stone-900 placeholder-stone-400 focus:border-stone-800 focus:ring-1 focus:ring-stone-800/20 rounded-xl text-xs outline-none transition-all"
+                />
+              )}
+              <label className="flex items-center space-x-2 mt-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isCurrent}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsCurrent(checked);
+                    if (checked) {
+                      setEndDate('至今');
+                    } else {
+                      setEndDate('');
+                    }
+                  }}
+                  className="w-4 h-4 text-stone-900 border-stone-300 rounded focus:ring-stone-800"
+                />
+                <span className="text-xs text-stone-700 font-medium">至今 (Present)</span>
+              </label>
             </div>
           </div>
 
@@ -362,13 +391,39 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                       </div>
                       <div>
                         <label className="block text-[11px] font-semibold text-stone-700 mb-1">畢業年月 <span className="text-red-500">*</span></label>
-                        <input
-                          type="month"
-                          required
-                          value={endDate}
-                          onChange={(e) => setEndDate(e.target.value)}
-                          className="w-full px-3.5 py-2 bg-white border border-stone-200 text-stone-900 placeholder-stone-400 focus:border-stone-800 focus:ring-1 focus:ring-stone-800/20 rounded-xl text-xs outline-none transition-all"
-                        />
+                        {isCurrent ? (
+                          <input
+                            type="text"
+                            disabled
+                            value="至今"
+                            className="w-full px-3.5 py-2 bg-stone-100 border border-stone-200 text-stone-500 rounded-xl text-xs outline-none transition-all cursor-not-allowed font-medium font-mono"
+                          />
+                        ) : (
+                          <input
+                            type="month"
+                            required
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="w-full px-3.5 py-2 bg-white border border-stone-200 text-stone-900 placeholder-stone-400 focus:border-stone-800 focus:ring-1 focus:ring-stone-800/20 rounded-xl text-xs outline-none transition-all"
+                          />
+                        )}
+                        <label className="flex items-center space-x-2 mt-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={isCurrent}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setIsCurrent(checked);
+                              if (checked) {
+                                setEndDate('至今');
+                              } else {
+                                setEndDate('');
+                              }
+                            }}
+                            className="w-4 h-4 text-stone-900 border-stone-300 rounded focus:ring-stone-800"
+                          />
+                          <span className="text-xs text-stone-700 font-medium">至今 (Present)</span>
+                        </label>
                       </div>
                     </div>
 
