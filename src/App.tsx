@@ -142,7 +142,7 @@ export default function App() {
           throw err;
         });
         const eduList = eduSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Education));
-        setEducations(eduList);
+        setEducations(sortResumeItems(eduList));
 
         // Fetch Experiences
         const expQuery = query(collection(db, 'experiences'), where('userId', '==', currentOwnerUid));
@@ -151,7 +151,7 @@ export default function App() {
           throw err;
         });
         const expList = expSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Experience));
-        setExperiences(expList);
+        setExperiences(sortResumeItems(expList));
 
         // Fetch Projects
         const projQuery = query(collection(db, 'projects'), where('userId', '==', currentOwnerUid));
@@ -167,6 +167,15 @@ export default function App() {
     } finally {
       setDataLoading(false);
     }
+  };
+
+  const sortResumeItems = <T extends { order?: number; startDate: string }>(items: T[]): T[] => {
+    return [...items].sort((a, b) => {
+      const orderA = a.order ?? 999999;
+      const orderB = b.order ?? 999999;
+      if (orderA !== orderB) return orderA - orderB;
+      return b.startDate.localeCompare(a.startDate);
+    });
   };
 
   // Trigger fetch when app is ready or owner logs in
@@ -199,15 +208,17 @@ export default function App() {
     if (!user || user.email !== OWNER_EMAIL) return;
 
     try {
+      const nextOrder = educations.length > 0 ? Math.max(...educations.map(e => e.order ?? 0)) + 1 : 0;
       const docRef = await addDoc(collection(db, 'educations'), {
         ...newEdu,
         userId: user.uid,
+        order: nextOrder,
       }).catch((err) => {
         handleFirestoreError(err, OperationType.CREATE, 'educations');
         throw err;
       });
 
-      setEducations(prev => [...prev, { id: docRef.id, ...newEdu, userId: user.uid }]);
+      setEducations(prev => sortResumeItems([...prev, { id: docRef.id, ...newEdu, userId: user.uid, order: nextOrder }]));
     } catch (err) {
       console.error(err);
       throw err;
@@ -227,12 +238,13 @@ export default function App() {
         startDate: updatedEdu.startDate,
         endDate: updatedEdu.endDate,
         description: updatedEdu.description || '',
+        order: updatedEdu.order ?? 0,
       }).catch((err) => {
         handleFirestoreError(err, OperationType.UPDATE, `educations/${updatedEdu.id}`);
         throw err;
       });
 
-      setEducations(prev => prev.map(edu => edu.id === updatedEdu.id ? { ...updatedEdu, userId: user.uid } : edu));
+      setEducations(prev => sortResumeItems(prev.map(edu => edu.id === updatedEdu.id ? { ...updatedEdu, userId: user.uid } : edu)));
     } catch (err) {
       console.error(err);
       throw err;
@@ -255,20 +267,44 @@ export default function App() {
     }
   };
 
+  // Reorder Education
+  const handleReorderEducation = async (reorderedEdus: Education[]) => {
+    if (!user || user.email !== OWNER_EMAIL) return;
+
+    setEducations(reorderedEdus);
+
+    try {
+      const promises = reorderedEdus.map((edu, index) => {
+        const docRef = doc(db, 'educations', edu.id);
+        return updateDoc(docRef, { order: index }).catch((err) => {
+          handleFirestoreError(err, OperationType.UPDATE, `educations/${edu.id}`);
+          throw err;
+        });
+      });
+      await Promise.all(promises);
+    } catch (err) {
+      console.error("Failed to update educations order:", err);
+      alert("儲存排序失敗，請稍後再試！");
+      fetchResumeData();
+    }
+  };
+
   // Add Experience
   const handleAddExperience = async (newExp: Omit<Experience, 'id'>) => {
     if (!user || user.email !== OWNER_EMAIL) return;
 
     try {
+      const nextOrder = experiences.length > 0 ? Math.max(...experiences.map(e => e.order ?? 0)) + 1 : 0;
       const docRef = await addDoc(collection(db, 'experiences'), {
         ...newExp,
         userId: user.uid,
+        order: nextOrder,
       }).catch((err) => {
         handleFirestoreError(err, OperationType.CREATE, 'experiences');
         throw err;
       });
 
-      setExperiences(prev => [...prev, { id: docRef.id, ...newExp, userId: user.uid }]);
+      setExperiences(prev => sortResumeItems([...prev, { id: docRef.id, ...newExp, userId: user.uid, order: nextOrder }]));
     } catch (err) {
       console.error(err);
       throw err;
@@ -287,12 +323,13 @@ export default function App() {
         startDate: updatedExp.startDate,
         endDate: updatedExp.endDate,
         description: updatedExp.description || '',
+        order: updatedExp.order ?? 0,
       }).catch((err) => {
         handleFirestoreError(err, OperationType.UPDATE, `experiences/${updatedExp.id}`);
         throw err;
       });
 
-      setExperiences(prev => prev.map(exp => exp.id === updatedExp.id ? { ...updatedExp, userId: user.uid } : exp));
+      setExperiences(prev => sortResumeItems(prev.map(exp => exp.id === updatedExp.id ? { ...updatedExp, userId: user.uid } : exp)));
     } catch (err) {
       console.error(err);
       throw err;
@@ -312,6 +349,28 @@ export default function App() {
     } catch (err) {
       console.error(err);
       throw err;
+    }
+  };
+
+  // Reorder Experience
+  const handleReorderExperience = async (reorderedExps: Experience[]) => {
+    if (!user || user.email !== OWNER_EMAIL) return;
+
+    setExperiences(reorderedExps);
+
+    try {
+      const promises = reorderedExps.map((exp, index) => {
+        const docRef = doc(db, 'experiences', exp.id);
+        return updateDoc(docRef, { order: index }).catch((err) => {
+          handleFirestoreError(err, OperationType.UPDATE, `experiences/${exp.id}`);
+          throw err;
+        });
+      });
+      await Promise.all(promises);
+    } catch (err) {
+      console.error("Failed to update experiences order:", err);
+      alert("儲存排序失敗，請稍後再試！");
+      fetchResumeData();
     }
   };
 
@@ -477,6 +536,7 @@ export default function App() {
                       onAdd={handleAddEducation}
                       onUpdate={handleUpdateEducation}
                       onDelete={handleDeleteEducation}
+                      onReorder={handleReorderEducation}
                     />
 
                     <ExperienceSection
@@ -485,6 +545,7 @@ export default function App() {
                       onAdd={handleAddExperience}
                       onUpdate={handleUpdateExperience}
                       onDelete={handleDeleteExperience}
+                      onReorder={handleReorderExperience}
                     />
                   </div>
                 </div>

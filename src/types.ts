@@ -21,6 +21,7 @@ export interface Education {
   endDate: string;
   description?: string;
   userId: string;
+  order?: number;
 }
 
 export interface Experience {
@@ -31,6 +32,7 @@ export interface Experience {
   endDate: string;
   description?: string;
   userId: string;
+  order?: number;
 }
 
 export interface Project {

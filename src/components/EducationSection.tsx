@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Education } from '../types';
-import { GraduationCap, Plus, Trash2, Edit2, Calendar, Check } from 'lucide-react';
+import { GraduationCap, Plus, Trash2, Edit2, Calendar, Check, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface EducationSectionProps {
   educations: Education[];
@@ -8,6 +8,7 @@ interface EducationSectionProps {
   onAdd: (edu: Omit<Education, 'id'>) => Promise<void>;
   onUpdate: (edu: Education) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onReorder: (reordered: Education[]) => Promise<void>;
 }
 
 export const EducationSection: React.FC<EducationSectionProps> = ({
@@ -16,6 +17,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
   onAdd,
   onUpdate,
   onDelete,
+  onReorder,
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -87,6 +89,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
 
     setLoading(true);
     try {
+      const existingEdu = educations.find(edu => edu.id === id);
       await onUpdate({
         id,
         school,
@@ -96,6 +99,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
         endDate,
         description,
         userId: '', // preserved in parent
+        order: existingEdu?.order ?? 0,
       });
       setEditingId(null);
       resetForm();
@@ -120,14 +124,62 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
     }
   };
 
+  // Drag and drop handlers
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIdx(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIdx === null || draggedIdx === index) return;
+
+    const updated = [...educations];
+    const draggedItem = updated[draggedIdx];
+    updated.splice(draggedIdx, 1);
+    updated.splice(index, 0, draggedItem);
+
+    setDraggedIdx(index);
+    onReorder(updated);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIdx(null);
+  };
+
+  const handleMoveUp = (index: number) => {
+    if (index === 0) return;
+    const updated = [...educations];
+    const temp = updated[index];
+    updated[index] = updated[index - 1];
+    updated[index - 1] = temp;
+    onReorder(updated);
+  };
+
+  const handleMoveDown = (index: number) => {
+    if (index === educations.length - 1) return;
+    const updated = [...educations];
+    const temp = updated[index];
+    updated[index] = updated[index + 1];
+    updated[index + 1] = temp;
+    onReorder(updated);
+  };
+
   return (
     <div id="education-container" className="bg-white border border-stone-200/80 rounded-3xl rounded-tr-none rounded-bl-[60px] shadow-[8px_8px_0px_rgba(28,25,23,0.03)] p-6 sm:p-8 mb-8 transition-all hover:shadow-[12px_12px_0px_rgba(28,25,23,0.05)] hover:border-stone-300/80">
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-stone-200/80">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-500/10 text-amber-800 border border-amber-500/20">
+      <div className="flex items-start justify-between mb-8 pb-4 border-b border-stone-200/80">
+        <div className="flex items-start space-x-3">
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-500/10 text-amber-800 border border-amber-500/20 mt-0.5">
             <GraduationCap className="w-4.5 h-4.5" />
           </div>
-          <h2 className="text-lg font-display font-bold text-stone-900 tracking-tight">學歷背景</h2>
+          <div>
+            <h2 className="text-lg font-display font-bold text-stone-900 tracking-tight">學歷背景</h2>
+            {isEditMode && educations.length > 1 && (
+              <p className="text-[10px] text-stone-400 font-mono mt-0.5">（可按住拖曳或使用右側按鈕調整自訂排序）</p>
+            )}
+          </div>
         </div>
         {isEditMode && !isAdding && !editingId && (
           <button
@@ -252,7 +304,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
           <p className="text-xs text-stone-400 text-center py-6 font-mono">尚未新增學歷背景資料。</p>
         ) : (
           <div className="relative border-l border-stone-200 pl-6 ml-4 space-y-8 py-2">
-            {educations.map((edu) => {
+            {educations.map((edu, index) => {
               const isEditingThis = editingId === edu.id;
 
               if (isEditingThis) {
@@ -355,16 +407,26 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                 );
               }
 
+              const isDraggingThis = draggedIdx === index;
+
               return (
                 <div
                   key={edu.id}
-                  className="group relative flex flex-col sm:flex-row sm:items-start p-4 rounded-xl hover:bg-stone-50 transition-all border border-transparent hover:border-stone-200/50"
+                  draggable={isEditMode && !editingId}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={`group relative flex flex-col sm:flex-row sm:items-start p-4 rounded-xl transition-all border border-transparent select-none ${
+                    isEditMode && !editingId 
+                      ? 'cursor-grab active:cursor-grabbing hover:bg-stone-50/75 hover:border-stone-200/50' 
+                      : 'hover:bg-stone-50 hover:border-stone-200/50'
+                  } ${isDraggingThis ? 'opacity-30 border-dashed border-stone-300 bg-stone-100/50' : ''}`}
                 >
                   {/* Absolute Timeline Node Dot */}
                   <div className="absolute -left-[31px] top-6 w-3 h-3 rounded-full bg-amber-600 border-2 border-white ring-4 ring-amber-600/15 group-hover:scale-125 group-hover:bg-amber-700 transition-all duration-300" />
 
                   {/* Details */}
-                  <div className="flex-1 space-y-1.5">
+                  <div className="flex-1 space-y-1.5 pr-2">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                       <div className="flex flex-wrap items-center gap-2">
                         <h4 className="text-base font-bold text-stone-900 font-display group-hover:text-amber-800 transition-colors">{edu.school}</h4>
@@ -387,25 +449,59 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                     )}
                   </div>
 
-                  {/* Action buttons */}
+                  {/* Action and Reordering buttons */}
                   {isEditMode && (
-                    <div className="absolute right-4 top-4 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1 rounded-lg border border-stone-200">
-                      <button
-                        id={`edit-edu-btn-${edu.id}`}
-                        onClick={() => handleEditClick(edu)}
-                        className="p-1.5 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors"
-                        title="編輯"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        id={`delete-edu-btn-${edu.id}`}
-                        onClick={() => handleDeleteClick(edu.id)}
-                        className="p-1.5 rounded-lg text-stone-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        title="刪除"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                    <div className="absolute right-4 top-4 flex items-center space-x-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity bg-white p-1 rounded-lg border border-stone-200 shadow-sm z-10">
+                      {educations.length > 1 && (
+                        <div className="flex items-center border-r border-stone-100 pr-1 mr-1">
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={(e) => { e.stopPropagation(); handleMoveUp(index); }}
+                            className={`p-1 rounded text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors ${index === 0 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
+                            title="上移"
+                          >
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === educations.length - 1}
+                            onClick={(e) => { e.stopPropagation(); handleMoveDown(index); }}
+                            className={`p-1 rounded text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors ${index === educations.length - 1 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
+                            title="下移"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="flex items-center space-x-1">
+                        {educations.length > 1 && (
+                          <div 
+                            className="p-1 text-stone-400 cursor-grab active:cursor-grabbing hover:bg-stone-50 rounded"
+                            title="按住拖曳調整順序"
+                          >
+                            <GripVertical className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+
+                        <button
+                          id={`edit-edu-btn-${edu.id}`}
+                          onClick={(e) => { e.stopPropagation(); handleEditClick(edu); }}
+                          className="p-1.5 rounded text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors cursor-pointer"
+                          title="編輯"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          id={`delete-edu-btn-${edu.id}`}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteClick(edu.id); }}
+                          className="p-1.5 rounded text-stone-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                          title="刪除"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

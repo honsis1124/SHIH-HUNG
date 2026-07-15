@@ -104,6 +104,10 @@
         "userId": {
           "type": "string",
           "description": "Owner user ID."
+        },
+        "order": {
+          "type": "integer",
+          "description": "Sort order index."
         }
       },
       "required": ["school", "major", "degree", "startDate", "endDate", "userId"]
@@ -145,6 +149,10 @@
         "userId": {
           "type": "string",
           "description": "Owner user ID."
+        },
+        "order": {
+          "type": "integer",
+          "description": "Sort order index."
         }
       },
       "required": ["company", "role", "startDate", "endDate", "userId"]
