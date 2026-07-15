@@ -29,6 +29,8 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [description, setDescription] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [location, setLocation] = useState('');
 
   const resetForm = () => {
     setCompany('');
@@ -36,6 +38,8 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
     setStartDate('');
     setEndDate('');
     setDescription('');
+    setIndustry('');
+    setLocation('');
   };
 
   const handleAddSubmit = async (e: React.FormEvent) => {
@@ -54,6 +58,8 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
         endDate,
         description,
         userId: '', // set in parent
+        industry,
+        location,
       });
       setIsAdding(false);
       resetForm();
@@ -72,6 +78,8 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
     setStartDate(exp.startDate);
     setEndDate(exp.endDate);
     setDescription(exp.description || '');
+    setIndustry(exp.industry || '');
+    setLocation(exp.location || '');
   };
 
   const handleUpdateSubmit = async (e: React.FormEvent, id: string) => {
@@ -93,6 +101,8 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
         description,
         userId: '', // preserved in parent
         order: existingExp?.order ?? 0,
+        industry,
+        location,
       });
       setEditingId(null);
       resetForm();
@@ -223,6 +233,29 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
+              <label className="block text-[11px] font-semibold text-stone-700 mb-1">產業類別 (選填)</label>
+              <input
+                type="text"
+                value={industry}
+                onChange={(e) => setIndustry(e.target.value.slice(0, 100))}
+                placeholder="例如: 網際網路業、金融科技"
+                className="w-full px-3.5 py-2 bg-white border border-stone-200 text-stone-900 placeholder-stone-400 focus:border-stone-800 focus:ring-1 focus:ring-stone-800/20 rounded-xl text-xs outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-stone-700 mb-1">工作地點 (選填)</label>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value.slice(0, 100))}
+                placeholder="例如: 台北市 / 遠端工作"
+                className="w-full px-3.5 py-2 bg-white border border-stone-200 text-stone-900 placeholder-stone-400 focus:border-stone-800 focus:ring-1 focus:ring-stone-800/20 rounded-xl text-xs outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
               <label className="block text-[11px] font-semibold text-stone-700 mb-1">任職開始年月 <span className="text-red-500">*</span></label>
               <input
                 type="month"
@@ -320,6 +353,27 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
+                        <label className="block text-[11px] font-semibold text-stone-700 mb-1">產業類別 (選填)</label>
+                        <input
+                          type="text"
+                          value={industry}
+                          onChange={(e) => setIndustry(e.target.value.slice(0, 100))}
+                          className="w-full px-3.5 py-2 bg-white border border-stone-200 text-stone-900 placeholder-stone-400 focus:border-stone-800 focus:ring-1 focus:ring-stone-800/20 rounded-xl text-xs outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-stone-700 mb-1">工作地點 (選填)</label>
+                        <input
+                          type="text"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value.slice(0, 100))}
+                          className="w-full px-3.5 py-2 bg-white border border-stone-200 text-stone-900 placeholder-stone-400 focus:border-stone-800 focus:ring-1 focus:ring-stone-800/20 rounded-xl text-xs outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
                         <label className="block text-[11px] font-semibold text-stone-700 mb-1">任職開始年月 <span className="text-red-500">*</span></label>
                         <input
                           type="month"
@@ -406,7 +460,24 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                       </div>
                     </div>
 
-                    <p className="text-xs font-bold text-emerald-800 font-mono tracking-wide uppercase">{exp.role}</p>
+                    <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                      <p className="text-xs font-bold text-emerald-800 font-mono tracking-wide uppercase">{exp.role}</p>
+                      {(exp.industry || exp.location) && (
+                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-stone-500 font-mono">
+                          <span className="text-stone-300">•</span>
+                          {exp.industry && (
+                            <span className="px-1.5 py-0.5 bg-stone-50 border border-stone-200/50 rounded-md text-stone-600 font-medium">
+                              {exp.industry}
+                            </span>
+                          )}
+                          {exp.location && (
+                            <span className="px-1.5 py-0.5 bg-stone-50 border border-stone-200/50 rounded-md text-stone-600 font-medium">
+                              {exp.location}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     {exp.description && (
                       <p className="text-xs text-stone-600 leading-relaxed whitespace-pre-wrap pt-1 max-w-3xl">

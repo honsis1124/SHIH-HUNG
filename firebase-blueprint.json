@@ -153,6 +153,16 @@
         "order": {
           "type": "integer",
           "description": "Sort order index."
+        },
+        "industry": {
+          "type": "string",
+          "description": "Industry of the company.",
+          "maxLength": 100
+        },
+        "location": {
+          "type": "string",
+          "description": "Work location.",
+          "maxLength": 100
         }
       },
       "required": ["company", "role", "startDate", "endDate", "userId"]

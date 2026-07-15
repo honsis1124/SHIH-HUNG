@@ -33,6 +33,8 @@ export interface Experience {
   description?: string;
   userId: string;
   order?: number;
+  industry?: string;
+  location?: string;
 }
 
 export interface Project {

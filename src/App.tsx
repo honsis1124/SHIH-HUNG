@@ -324,6 +324,8 @@ export default function App() {
         endDate: updatedExp.endDate,
         description: updatedExp.description || '',
         order: updatedExp.order ?? 0,
+        industry: updatedExp.industry || '',
+        location: updatedExp.location || '',
       }).catch((err) => {
         handleFirestoreError(err, OperationType.UPDATE, `experiences/${updatedExp.id}`);
         throw err;

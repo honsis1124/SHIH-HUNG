@@ -60,6 +60,8 @@ service cloud.firestore {
         && data.endDate is string && data.endDate.size() <= 20
         && (data.description == null || (data.description is string && data.description.size() <= 2000))
         && (data.order == null || data.order is int)
+        && (data.industry == null || (data.industry is string && data.industry.size() <= 100))
+        && (data.location == null || (data.location is string && data.location.size() <= 100))
         && data.userId == request.auth.uid;
     }
 
@@ -115,13 +117,13 @@ service cloud.firestore {
         && isValidId(experienceId) 
         && isValidExperience(incoming()) 
         && incoming().keys().hasAll(['company', 'role', 'startDate', 'endDate', 'userId'])
-        && incoming().keys().size() <= 8;
+        && incoming().keys().size() <= 10;
         
       allow update: if isVerifiedUser() 
         && isValidId(experienceId) 
         && existing().userId == request.auth.uid 
         && isValidExperience(incoming())
-        && incoming().diff(existing()).affectedKeys().hasOnly(['company', 'role', 'startDate', 'endDate', 'description', 'userId', 'order']);
+        && incoming().diff(existing()).affectedKeys().hasOnly(['company', 'role', 'startDate', 'endDate', 'description', 'userId', 'order', 'industry', 'location']);
         
       allow delete: if isVerifiedUser() && isValidId(experienceId) && existing().userId == request.auth.uid;
     }
