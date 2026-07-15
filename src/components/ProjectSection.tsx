@@ -74,6 +74,78 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
     return () => clearInterval(interval);
   }, [hoveredCardId, projects]);
 
+  // Keyboard control integration: handles Arrow keys (switching media) & Escape (closing modals)
+  useEffect(() => {
+    if (!selectedProject) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 1. ESC key: Close lightbox if open, otherwise close selectedProject modal
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (isLightboxOpen) {
+          setIsLightboxOpen(false);
+        } else {
+          setSelectedProject(null);
+        }
+        return;
+      }
+
+      // 2. Arrow keys: Change active media index (only if multiple media items exist)
+      const mediaItems: { type: 'video' | 'image'; url: string }[] = [];
+      if (selectedProject.videoUrl) {
+        mediaItems.push({ type: 'video', url: selectedProject.videoUrl });
+      }
+      if (selectedProject.image) {
+        mediaItems.push({ type: 'image', url: selectedProject.image });
+      }
+      if (selectedProject.extraImages && selectedProject.extraImages.length > 0) {
+        selectedProject.extraImages.forEach((img) => {
+          mediaItems.push({ type: 'image', url: img });
+        });
+      }
+
+      if (mediaItems.length <= 1) return;
+
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        
+        if (isLightboxOpen) {
+          // In Lightbox, we only cycle through images!
+          const imageIndices = mediaItems
+            .map((item, idx) => (item.type === 'image' ? idx : -1))
+            .filter((idx) => idx !== -1);
+            
+          if (imageIndices.length > 1) {
+            const currentImgSubIdx = imageIndices.indexOf(activeMediaIndex);
+            if (currentImgSubIdx !== -1) {
+              let nextSubIdx = 0;
+              if (e.key === 'ArrowLeft') {
+                nextSubIdx = (currentImgSubIdx - 1 + imageIndices.length) % imageIndices.length;
+              } else {
+                nextSubIdx = (currentImgSubIdx + 1) % imageIndices.length;
+              }
+              setActiveMediaIndex(imageIndices[nextSubIdx]);
+            }
+          }
+        } else {
+          // Regular modal: cycle through all media items (images and videos)
+          let nextIdx = 0;
+          if (e.key === 'ArrowLeft') {
+            nextIdx = (activeMediaIndex - 1 + mediaItems.length) % mediaItems.length;
+          } else {
+            nextIdx = (activeMediaIndex + 1) % mediaItems.length;
+          }
+          setActiveMediaIndex(nextIdx);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedProject, isLightboxOpen, activeMediaIndex]);
+
   // Compile all unique tech tags dynamically (Suggestion 3)
   const allDynamicTechs = useMemo(() => {
     const techsSet = new Set<string>();
@@ -905,7 +977,7 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
 
                   {/* Media Thumbnails Row */}
                   {mediaItems.length > 1 && (
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none">
+                    <div className="flex items-center gap-2.5 overflow-x-auto py-2.5 px-1 scrollbar-none">
                       {mediaItems.map((item, idx) => {
                         const isSelected = idx === activeMediaIndex;
                         const isVideo = item.type === 'video';
@@ -915,8 +987,10 @@ export const ProjectSection: React.FC<ProjectSectionProps> = ({
                             key={idx}
                             type="button"
                             onClick={() => setActiveMediaIndex(idx)}
-                            className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all bg-stone-50 flex items-center justify-center cursor-pointer ${
-                              isSelected ? 'border-stone-950 scale-105 shadow-sm' : 'border-stone-200 hover:border-stone-400'
+                            className={`relative w-16 h-16 rounded-xl overflow-hidden border flex-shrink-0 transition-all bg-stone-50 flex items-center justify-center cursor-pointer ${
+                              isSelected 
+                                ? 'border-stone-950 ring-2 ring-stone-950 ring-offset-2 scale-105 shadow-md z-10' 
+                                : 'border-stone-200 hover:border-stone-400'
                             }`}
                           >
                             {isVideo ? (
