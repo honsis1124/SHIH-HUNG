@@ -49,6 +49,18 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
     }
   }, [profile]);
 
+  // Keyboard listener to close editing modal or bio modal on Escape key press (UX / Accessibility)
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsEditing(false);
+        setShowBioModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !title || !bio || !email) {

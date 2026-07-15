@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User } from 'firebase/auth';
-import { LogOut, Eye, Settings, ShieldCheck } from 'lucide-react';
+import { LogOut, Eye, Settings, ShieldCheck, Printer, Share2 } from 'lucide-react';
 import { logout } from '../firebase';
 
 interface NavbarProps {
@@ -17,6 +17,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   ownerEmail,
 }) => {
   const isOwner = user?.email === ownerEmail;
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   return (
     <header id="app-header" className="sticky top-0 z-50 w-full bg-[#faf9f5]/90 border-b border-stone-200/80 backdrop-blur-md shadow-sm transition-all duration-300">
@@ -36,7 +47,32 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Action Area */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2.5 sm:space-x-4">
+            {/* Share and Print buttons (Visible for everyone, print-optimized) */}
+            <button
+              onClick={handleShare}
+              className={`flex items-center space-x-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer select-none no-print ${
+                copied
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200 shadow-sm'
+                  : 'bg-white hover:bg-stone-50 text-stone-600 hover:text-stone-900 border-stone-200/80 shadow-sm'
+              }`}
+              title="複製此履歷網址，方便與他人分享！"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{copied ? '已複製！' : '分享履歷'}</span>
+              <span className="sm:hidden">{copied ? '已複製！' : '分享'}</span>
+            </button>
+
+            <button
+              onClick={handlePrint}
+              className="flex items-center space-x-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-stone-50 text-stone-600 hover:text-stone-900 border border-stone-200/80 shadow-sm transition-all cursor-pointer select-none no-print"
+              title="將網頁轉換為精美的 A4 履歷並存為 PDF"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">匯出 PDF</span>
+              <span className="sm:hidden">PDF</span>
+            </button>
+
             {/* Owner controls: Toggle preview/edit */}
             {user && (
               <div className="flex items-center bg-stone-100 p-1 rounded-xl border border-stone-200/85">
